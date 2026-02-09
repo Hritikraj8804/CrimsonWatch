@@ -1,145 +1,121 @@
-# CrimsonWatch - AI Agent Security Monitoring Platform
+# CrimsonWatch - AI Agent Security Operations Center (SOC)
 
-**Team Red** | **2 Fast 2 MCP Hackathon**
+<div align="center">
+  <h3>🛡️ Secure Your AI Agents in Real-Time 🛡️</h3>
+  <p>The first dedicated SOC for monitoring, detecting, and preventing attacks on AI agents running on Archestra.</p>
+  
+  [![Archestra Hackathon](https://img.shields.io/badge/Hackathon-2_Fast_2_MCP-crimson)](https://archestra.ai)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  [![React](https://img.shields.io/badge/Frontend-React_18-blue)](https://reactjs.org/)
+  [![MCP](https://img.shields.io/badge/Backend-MCP-green)](https://modelcontextprotocol.io)
+</div>
 
-## 🛡️ What is CrimsonWatch?
+---
 
-CrimsonWatch is the first **Security Operations Center (SOC) dashboard** specifically designed for monitoring AI agents. It uses Archestra's observability features to detect and prevent prompt injection attacks, data exfiltration, and unauthorized tool usage in real-time.
+## 🚨 The Threat Landscape
+AI agents are the new attack vector. Traditional security tools scan code, but they don't see what agents *do*.
+- **Prompt Injection**: Hijacking agent instructions to bypass guardrails.
+- **Data Exfiltration**: Agents reading sensitive files and sending them to external servers.
+- **Tool Abuse**: Unauthorized execution of dangerous commands or API calls.
 
-## 🎯 The Problem
+## 🦅 What is CrimsonWatch?
+CrimsonWatch gives you **eyes on your agents**. It integrates directly with Archestra's observability layer via the **Model Context Protocol (MCP)** to provide:
 
-AI agents can be hijacked through prompt injection attacks:
-- **ChatGPT** (Apr 2023) - Data stolen via markdown injection
-- **GitHub Copilot** (Jun 2024) - Prompt injection vulnerability
-- **Slack AI** (Aug 2024) - Data exfiltration attack
+1.  **Real-Time Threat Dashboard**: Visualize threat levels, active attacks, and blocked attempts.
+2.  **Agent Risk Profiling**: Score agents based on their behavior and tool usage patterns.
+3.  **Live Security Alerts**: Instant notification when an agent goes rogue.
+4.  **Forensic Timeline**: A complete playback of every security event.
 
-Traditional security tools scan code for bugs. **CrimsonWatch monitors what AI agents are actually doing.**
+## 🏗️ Technical Architecture
 
-## 🏗️ Architecture
+CrimsonWatch is a full-stack application leveraging the power of MCP:
 
+```text
++---------------------+       +----------------------+
+|  Archestra Platform |       |     CrimsonWatch     |
+| (Docker Container)  |       |   (Local Machine)    |
+|                     |       |                      |
+|  [ AI Agents ]      |       |  [ MCP Server (Py) ] |
+|        |            | <---> |          ^           |
+|        v            |  MCP  |          |           |
+| [ MCP Gateway ]     |       |          | Control   |
+|        |            |       |          v           |
+|        v            | HTTP  |  [ React Dashboard ] |
+| [ Prometheus Metrics] ----> |          ^           |
++---------------------+       |          |           |
+                              +----------|-----------+
+                                         |
+                                    [ User ]
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    CrimsonWatch Stack                       │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌─────────────────┐    ┌─────────────────┐                 │
-│  │  CrimsonWatch   │    │   Archestra     │                 │
-│  │  MCP Server     │◄───│   Platform      │                 │
-│  │  (Python)       │    │   (Docker)      │                 │
-│  └────────┬────────┘    └────────┬────────┘                 │
-│           │                      │                          │
-│           │   Prometheus Metrics │                          │
-│           │   OpenTelemetry      │                          │
-│           ▼                      ▼                          │
-│  ┌─────────────────────────────────────────┐                │
-│  │       CrimsonWatch Dashboard            │                │
-│  │       (React + Vite)                    │                │
-│  │       - Threat Level Gauge              │                │
-│  │       - Agent Activity Timeline         │                │
-│  │       - Security Alerts                 │                │
-│  └─────────────────────────────────────────┘                │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
 
-## 🚀 Quick Start
+### 1. Python MCP Server (`/mcp-server`)
+A custom MCP server that acts as the security brain. It:
+- **Analyzes** tool calls for dangerous patterns (e.g., `rm -rf`, SQL injection).
+- **Calculates** real-time risk scores for every agent.
+- **Exposes** security tools (`scan_for_injection`, `get_threat_level`) back to Archestra.
+
+### 2. Monitoring Dashboard (`/frontend`)
+A modern, dark-mode React application built with Vite and Tailwind CSS.
+- **Live Connection**: Connects to Archestra's Prometheus metrics.
+- **Interactive Graphs**: Visualizes complex threat data associated with agents.
+- **Control Center**: Allows admins to simulate attacks and view live alerts.
+
+## 🚀 Quick Start Guide
 
 ### Prerequisites
-- Docker Desktop
-- Python 3.9+
-- Node.js 18+
+- **Docker Desktop** installed and running
+- **Node.js 18+**
+- **Python 3.10+**
 
-### 1. Start Archestra Platform
+### Step 1: Start Archestra
+Run the Archestra platform along with Prometheus for metrics.
 
 ```bash
-docker pull archestra/platform:latest
-docker run -p 9000:9000 -p 3000:3000 -p 9090:9090 \
-  -e ARCHESTRA_QUICKSTART=true \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -v archestra-postgres-data:/var/lib/postgresql/data \
-  -v archestra-app-data:/app/data \
-  archestra/platform
+docker-compose up -d archestra
 ```
 
-### 2. Install CrimsonWatch MCP Server
+### Step 2: Launch the MCP Server
+This server handles the security logic and interacts with Archestra.
 
 ```bash
 cd mcp-server
 pip install -r requirements.txt
 python server.py
 ```
+*The server will run on port 8000.*
 
-### 3. Register in Archestra
-1. Go to `http://localhost:3000`
-2. Navigate to MCP Registry → Add New → Custom
-3. Add CrimsonWatch server URL: `http://host.docker.internal:8000`
-
-### 4. Start the Dashboard
+### Step 3: Launch the Dashboard
+Start the UI to visualize your agent security status.
 
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+*Open [http://localhost:5173](http://localhost:5173) in your browser.*
 
-Open `http://localhost:5173`
+## 🎮 How to Use
 
-## 📊 Features
+1.  **Connect**: The dashboard automatically connects to your local Archestra instance.
+2.  **Monitor**: Watch the **Threat Level Gauge** and **Active Agents** list.
+3.  **Simulate**: Use the **"Simulate Attack"** button (if in Demo Mode) to see how CrimsonWatch reacts to security incidents.
+4.  **Investigate**: Click on any agent in the **Aggents** tab to see their full risk profile and tool usage history.
 
-### Real-Time Threat Monitoring
-- **Threat Level Gauge**: Aggregate risk score (0-100)
-- **Live Agent Activity**: See what agents are doing right now
-- **Security Alerts**: Instant notifications for suspicious behavior
+## 🔧 MCP Tools Provided
 
-### Security Intelligence
-- **Blocked Tool Calls**: Track when Archestra's guardrails prevent dangerous actions
-- **Prompt Injection Detection**: Identify potential attack patterns
-- **Data Exfiltration Prevention**: Monitor for unauthorized data access
+CrimsonWatch exposes these tools to your AI agents to help them protect themselves:
 
-### Agent Risk Profiling
-- **Risk Scores**: Per-agent security ratings
-- **Behavioral Analysis**: Detect anomalies in agent behavior
-- **Audit Trail**: Complete history of agent actions
+| Tool Name | Description |
+|-----------|-------------|
+| `get_threat_level` | Returns the current system-wide DEFCON level (0-100). |
+| `scan_for_injection` | Scans a user's prompt for known jailbreak patterns. |
+| `log_security_event` | Allows an agent to report suspicious activity to the SOC. |
+| `get_agent_risk_profile` | Retrieves the calculated risk score for a specific agent ID. |
 
-## 🔧 CrimsonWatch MCP Tools
-
-| Tool | Description |
-|------|-------------|
-| `get_threat_level` | Returns current system threat level |
-| `get_active_alerts` | Lists all active security alerts |
-| `get_agent_risk_profile` | Returns risk assessment for specific agent |
-| `scan_for_injection` | Analyzes text for prompt injection patterns |
-| `log_security_event` | Records a security event for monitoring |
-
-## 📁 Project Structure
-
-```
-crimsonwatch/
-├── mcp-server/          # Python MCP server
-│   ├── server.py        # Main MCP server
-│   ├── security/        # Security analysis logic
-│   └── requirements.txt
-├── frontend/            # React dashboard
-│   ├── src/
-│   └── package.json
-├── docker-compose.yml   # Full stack deployment
-└── README.md
-```
-
-## 🏆 Hackathon Submission
-
+## 🏆 Hackathon Details
+**Team**: Team Red
 **Track**: Best Use of Archestra
-
-**Key Differentiators**:
-1. First SOC dashboard specifically for AI agent monitoring
-2. Deep integration with Archestra's security features
-3. Real-time visualization of agent behavior
-4. Production-ready architecture
-
-## 📄 License
-
-MIT License
+**Tech Stack**: Python (MCP SDK), React, TypeScript, Tailwind CSS, Docker, Prometheus.
 
 ---
-
-**Built with ❤️ by Team Red for 2 Fast 2 MCP Hackathon**
+*Protect your agents before they compromise your data.*
