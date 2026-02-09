@@ -1,125 +1,121 @@
-# CrimsonWatch - Security Sentinel Dashboard
+# CrimsonWatch - AI Agent Security Operations Center (SOC)
 
-A professional-grade security operations center (SOC) dashboard for monitoring Archestra AI agents. Built for hackathons, designed for production.
+<div align="center">
+  <h3>🛡️ Secure Your AI Agents in Real-Time 🛡️</h3>
+  <p>The first dedicated SOC for monitoring, detecting, and preventing attacks on AI agents running on Archestra.</p>
+  
+  [![Archestra Hackathon](https://img.shields.io/badge/Hackathon-2_Fast_2_MCP-crimson)](https://archestra.ai)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  [![React](https://img.shields.io/badge/Frontend-React_18-blue)](https://reactjs.org/)
+  [![MCP](https://img.shields.io/badge/Backend-MCP-green)](https://modelcontextprotocol.io)
+</div>
 
-## Features
+---
 
-**Real-time Threat Detection**
-- Intelligent rule-based threat detection
-- Risk scoring algorithm (0-100 scale)
-- Automated incident correlation
-- Live alert feed with severity classification
+## 🚨 The Threat Landscape
+AI agents are the new attack vector. Traditional security tools scan code, but they don't see what agents *do*.
+- **Prompt Injection**: Hijacking agent instructions to bypass guardrails.
+- **Data Exfiltration**: Agents reading sensitive files and sending them to external servers.
+- **Tool Abuse**: Unauthorized execution of dangerous commands or API calls.
 
-**Cyberpunk UI/UX**
-- Dark theme with crimson accents
-- Glass morphism design
-- Animated threat gauge
-- Real-time data visualization
-- Responsive layout
+## 🦅 What is CrimsonWatch?
+CrimsonWatch gives you **eyes on your agents**. It integrates directly with Archestra's observability layer via the **Model Context Protocol (MCP)** to provide:
 
-**Core Components**
-- **Threat Level Gauge**: Visual representation of system risk
-- **Attack Timeline**: Chronological incident display with severity
-- **Agent Leaderboard**: Risk-ranked agent monitoring
-- **Live Alert Feed**: Real-time security notifications
-- **Stats Dashboard**: Key security metrics
+1.  **Real-Time Threat Dashboard**: Visualize threat levels, active attacks, and blocked attempts.
+2.  **Agent Risk Profiling**: Score agents based on their behavior and tool usage patterns.
+3.  **Live Security Alerts**: Instant notification when an agent goes rogue.
+4.  **Forensic Timeline**: A complete playback of every security event.
 
-## Tech Stack
+## 🏗️ Technical Architecture
 
-**Backend**
-- Python 3.9+
-- Flask with CORS
-- Prometheus integration
-- Background polling engine
-- In-memory data store
+CrimsonWatch is a full-stack application leveraging the power of MCP:
 
-**Frontend**
-- React 18 with TypeScript
-- Vite build tool
-- Tailwind CSS
-- Framer Motion animations
-- Recharts visualization
-- Lucide icons
-
-## Quick Start
-
-### 1. Start the Backend
-
-```bash
-cd backend
-python -m pip install -r requirements.txt
-python app.py
+```text
++---------------------+       +----------------------+
+|  Archestra Platform |       |     CrimsonWatch     |
+| (Docker Container)  |       |   (Local Machine)    |
+|                     |       |                      |
+|  [ AI Agents ]      |       |  [ MCP Server (Py) ] |
+|        |            | <---> |          ^           |
+|        v            |  MCP  |          |           |
+| [ MCP Gateway ]     |       |          | Control   |
+|        |            |       |          v           |
+|        v            | HTTP  |  [ React Dashboard ] |
+| [ Prometheus Metrics] ----> |          ^           |
++---------------------+       |          |           |
+                              +----------|-----------+
+                                         |
+                                    [ User ]
 ```
 
-Backend will run on `http://localhost:5000`
+### 1. Python MCP Server (`/mcp-server`)
+A custom MCP server that acts as the security brain. It:
+- **Analyzes** tool calls for dangerous patterns (e.g., `rm -rf`, SQL injection).
+- **Calculates** real-time risk scores for every agent.
+- **Exposes** security tools (`scan_for_injection`, `get_threat_level`) back to Archestra.
 
-### 2. Start the Frontend
+### 2. Monitoring Dashboard (`/frontend`)
+A modern, dark-mode React application built with Vite and Tailwind CSS.
+- **Live Connection**: Connects to Archestra's Prometheus metrics.
+- **Interactive Graphs**: Visualizes complex threat data associated with agents.
+- **Control Center**: Allows admins to simulate attacks and view live alerts.
+
+## 🚀 Quick Start Guide
+
+### Prerequisites
+- **Docker Desktop** installed and running
+- **Node.js 18+**
+- **Python 3.10+**
+
+### Step 1: Start Archestra
+Run the Archestra platform along with Prometheus for metrics.
+
+```bash
+docker-compose up -d archestra
+```
+
+### Step 2: Launch the MCP Server
+This server handles the security logic and interacts with Archestra.
+
+```bash
+cd mcp-server
+pip install -r requirements.txt
+python server.py
+```
+*The server will run on port 8000.*
+
+### Step 3: Launch the Dashboard
+Start the UI to visualize your agent security status.
 
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+*Open [http://localhost:5173](http://localhost:5173) in your browser.*
 
-Frontend will run on `http://localhost:3000`
+## 🎮 How to Use
 
-### 3. Build for Production
+1.  **Connect**: The dashboard automatically connects to your local Archestra instance.
+2.  **Monitor**: Watch the **Threat Level Gauge** and **Active Agents** list.
+3.  **Simulate**: Use the **"Simulate Attack"** button (if in Demo Mode) to see how CrimsonWatch reacts to security incidents.
+4.  **Investigate**: Click on any agent in the **Aggents** tab to see their full risk profile and tool usage history.
 
-```bash
-cd frontend
-npm run build
-```
+## 🔧 MCP Tools Provided
 
-Production build will be in `frontend/dist/`
+CrimsonWatch exposes these tools to your AI agents to help them protect themselves:
 
-## API Endpoints
+| Tool Name | Description |
+|-----------|-------------|
+| `get_threat_level` | Returns the current system-wide DEFCON level (0-100). |
+| `scan_for_injection` | Scans a user's prompt for known jailbreak patterns. |
+| `log_security_event` | Allows an agent to report suspicious activity to the SOC. |
+| `get_agent_risk_profile` | Retrieves the calculated risk score for a specific agent ID. |
 
-- `GET /api/metrics` - Global dashboard metrics
-- `GET /api/incidents` - Security incidents list
-- `GET /api/agents` - Agent leaderboard
-- `GET /api/events` - Raw events (debug)
-- `GET /api/threat-summary` - Complete threat summary
-- `GET /health` - Health check
-
-## Configuration
-
-Environment variables:
-- `PROMETHEUS_URL` - Prometheus endpoint (default: http://localhost:9090)
-- `POLL_INTERVAL` - Metrics polling interval in seconds (default: 5)
-- `PORT` - Backend port (default: 5000)
-
-## Threat Detection Rules
-
-1. **Brute Force Attack**: 5+ blocked calls in short timeframe
-2. **Permission Violation**: Unauthorized access attempts
-3. **High-Risk Tool Usage**: File delete, system exec, network send
-4. **Suspicious Data Access**: High-sensitivity data access
-5. **Anomalous Behavior**: ML-based anomaly detection
-
-## Project Structure
-
-```
-├── backend/
-│   ├── app.py              # Flask application
-│   └── requirements.txt    # Python dependencies
-├── frontend/
-│   ├── src/
-│   │   ├── components/     # React components
-│   │   ├── hooks/          # Custom hooks
-│   │   ├── types.ts        # TypeScript types
-│   │   ├── App.tsx         # Main app
-│   │   └── index.css       # Styles
-│   ├── package.json
-│   └── vite.config.ts
-└── docs/
-    ├── ARCHITECTURE.md
-    └── API_SPEC.md
-```
-
-## License
-
-MIT License - Built with passion for security monitoring.
+## 🏆 Hackathon Details
+**Team**: Team Red
+**Track**: Best Use of Archestra
+**Tech Stack**: Python (MCP SDK), React, TypeScript, Tailwind CSS, Docker, Prometheus.
 
 ---
-
-**Ready to win your hackathon!** CrimsonWatch combines stunning visuals with robust security monitoring capabilities.
+*Protect your agents before they compromise your data.*

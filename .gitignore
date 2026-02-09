@@ -2,8 +2,6 @@
 # CrimsonWatch .gitignore
 # ================================
 
-# ----- Project Internal Docs (LLM Context) -----
-PROJECT_CONTEXT.md
 
 # ----- General -----
 .DS_Store
@@ -43,18 +41,23 @@ pip-delete-this-directory.txt
 instance/
 .webassets-cache
 
-# ----- Node / Frontend -----
+# Node
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm
+.yarn
+
+# Build outputs
+dist/
+build/
 frontend/dist/
 frontend/build/
 frontend/.env
 frontend/.env.local
 frontend/.env.*.local
-.pnpm-store/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
 *.tsbuildinfo
 
 # ----- IDE & Editors -----
