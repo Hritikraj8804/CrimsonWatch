@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Shield, Activity, Menu, X } from 'lucide-react'
+import { Shield, Activity, Menu, X, Wifi, WifiOff } from 'lucide-react'
 import { ThreatGauge } from './components/ThreatGauge'
 import { Timeline } from './components/Timeline'
 import { Leaderboard } from './components/Leaderboard'
@@ -9,7 +9,15 @@ import { StatsCards } from './components/StatsCards'
 import { useThreatSummary } from './hooks/useApi'
 
 function App() {
-  const { data: threatSummary, loading, error, isAttackMode, toggleAttackMode } = useThreatSummary()
+  const {
+    data: threatSummary,
+    loading,
+    error,
+    isAttackMode,
+    toggleAttackMode,
+    isLiveMode,
+    toggleLiveMode
+  } = useThreatSummary()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -71,14 +79,27 @@ function App() {
               </div>
             </div>
 
-            <div className="hidden md:flex items-center gap-6">
+            <div className="hidden md:flex items-center gap-4">
+              {/* Live Mode Toggle */}
+              <button
+                onClick={toggleLiveMode}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md font-mono text-xs transition-all border ${isLiveMode
+                  ? 'bg-blue-500/10 border-blue-500 text-blue-400 hover:bg-blue-500/20'
+                  : 'bg-gray-500/10 border-gray-600 text-gray-400 hover:bg-gray-500/20'
+                  }`}
+              >
+                {isLiveMode ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
+                {isLiveMode ? 'LIVE' : 'DEMO'}
+              </button>
+
               {/* Simulation Toggle */}
               <button
                 onClick={toggleAttackMode}
+                disabled={isLiveMode}
                 className={`flex items-center gap-2 px-4 py-2 rounded-md font-mono text-sm transition-all border ${isAttackMode
                   ? 'bg-crimson-500/10 border-crimson-500 text-crimson-400 hover:bg-crimson-500/20'
                   : 'bg-green-500/10 border-green-500 text-green-400 hover:bg-green-500/20'
-                  }`}
+                  } ${isLiveMode ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <Activity className="w-4 h-4" />
                 {isAttackMode ? 'STOP SIMULATION' : 'SIMULATE ATTACK'}
