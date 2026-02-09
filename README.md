@@ -1,125 +1,72 @@
 # CrimsonWatch - Security Sentinel Dashboard
 
-A professional-grade security operations center (SOC) dashboard for monitoring Archestra AI agents. Built for hackathons, designed for production.
+**Team Red** | **Event**: 2 Fast 2 MCP Hackathon  
+**Live Demo**: [GitHub Pages Link]
 
-## Features
+A professional-grade security operations center (SOC) dashboard for monitoring Archestra AI agents.
 
-**Real-time Threat Detection**
-- Intelligent rule-based threat detection
-- Risk scoring algorithm (0-100 scale)
-- Automated incident correlation
-- Live alert feed with severity classification
+## 🛡️ Concept
+CrimsonWatch transforms raw security logs from Archestra agents into **actionable threat intelligence**. Instead of staring at terminal output, security analysts get a real-time, visual command center.
 
-**Cyberpunk UI/UX**
-- Dark theme with crimson accents
-- Glass morphism design
-- Animated threat gauge
-- Real-time data visualization
-- Responsive layout
+**Note**: This is a **Frontend-Only Demo Version** built for the hackathon. It uses static mock data to simulate how the dashboard would behave when connected to a real Archestra instance via Prometheus.
 
-**Core Components**
-- **Threat Level Gauge**: Visual representation of system risk
-- **Attack Timeline**: Chronological incident display with severity
-- **Agent Leaderboard**: Risk-ranked agent monitoring
-- **Live Alert Feed**: Real-time security notifications
-- **Stats Dashboard**: Key security metrics
+## 🚀 Key Features
 
-## Tech Stack
+- **Real-time Threat Gauge**: Visualizes aggregate system risk (0-100).
+- **Attack Simulation**: Toggle between "Normal" and "Attack" modes to see the dashboard respond to threats.
+- **Incident Timeline**: Correlated security events with severity classification.
+- **Risky Agent Leaderboard**: Identifies which agents are generating the most blocked calls.
+- **Live Alert Feed**: Ticker-style updates for immediate awareness.
 
-**Backend**
-- Python 3.9+
-- Flask with CORS
-- Prometheus integration
-- Background polling engine
-- In-memory data store
+## 🛠️ Tech Stack
 
-**Frontend**
-- React 18 with TypeScript
-- Vite build tool
-- Tailwind CSS
-- Framer Motion animations
-- Recharts visualization
-- Lucide icons
+- **Frontend**: React 18, Vite, TypeScript
+- **Styling**: Tailwind CSS (Custom "Team Red" Cyberpunk Theme)
+- **Visuals**: Recharts, Framer Motion, Lucide Icons
+- **Deployment**: GitHub Pages
 
-## Quick Start
+## 📦 Installation
 
-### 1. Start the Backend
+This project is pure static frontend. You don't need a backend server.
 
-```bash
-cd backend
-python -m pip install -r requirements.txt
-python app.py
-```
+1. **Clone the repo**
+   ```bash
+   git clone https://github.com/Hritikraj8804/CrimsonWatch.git
+   cd CrimsonWatch/frontend
+   ```
 
-Backend will run on `http://localhost:5000`
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-### 2. Start the Frontend
+3. **Run locally**
+   ```bash
+   npm run dev
+   ```
+   Open `http://localhost:3000` in your browser.
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+## 🎮 How to Demo
 
-Frontend will run on `http://localhost:3000`
+1. **Start the app**: You'll see the "Normal Operation" state (Green gauge, low activity).
+2. **Simulate Attack**: Click the **"SIMULATE ATTACK"** button in the top right.
+3. **Observe**:
+   - Threat Gauge spikes to Red (Critical).
+   - New "High Severity" incidents appear in the timeline.
+   - The Alert Ticker starts showing intrusion warnings.
+   - The "Risky Agents" leaderboard updates.
 
-### 3. Build for Production
-
-```bash
-cd frontend
-npm run build
-```
-
-Production build will be in `frontend/dist/`
-
-## API Endpoints
-
-- `GET /api/metrics` - Global dashboard metrics
-- `GET /api/incidents` - Security incidents list
-- `GET /api/agents` - Agent leaderboard
-- `GET /api/events` - Raw events (debug)
-- `GET /api/threat-summary` - Complete threat summary
-- `GET /health` - Health check
-
-## Configuration
-
-Environment variables:
-- `PROMETHEUS_URL` - Prometheus endpoint (default: http://localhost:9090)
-- `POLL_INTERVAL` - Metrics polling interval in seconds (default: 5)
-- `PORT` - Backend port (default: 5000)
-
-## Threat Detection Rules
-
-1. **Brute Force Attack**: 5+ blocked calls in short timeframe
-2. **Permission Violation**: Unauthorized access attempts
-3. **High-Risk Tool Usage**: File delete, system exec, network send
-4. **Suspicious Data Access**: High-sensitivity data access
-5. **Anomalous Behavior**: ML-based anomaly detection
-
-## Project Structure
+## 📁 Project Structure
 
 ```
-├── backend/
-│   ├── app.py              # Flask application
-│   └── requirements.txt    # Python dependencies
-├── frontend/
-│   ├── src/
-│   │   ├── components/     # React components
-│   │   ├── hooks/          # Custom hooks
-│   │   ├── types.ts        # TypeScript types
-│   │   ├── App.tsx         # Main app
-│   │   └── index.css       # Styles
-│   ├── package.json
-│   └── vite.config.ts
-└── docs/
-    ├── ARCHITECTURE.md
-    └── API_SPEC.md
+frontend/
+├── public/
+│   └── mock-data/       # JSON files for simulation
+├── src/
+│   ├── components/      # React UI components
+│   ├── hooks/           # Data fetching logic
+│   └── ...
 ```
 
-## License
-
-MIT License - Built with passion for security monitoring.
-
----
-
-**Ready to win your hackathon!** CrimsonWatch combines stunning visuals with robust security monitoring capabilities.
+## 📄 License
+MIT License

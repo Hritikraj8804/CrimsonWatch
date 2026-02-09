@@ -27,10 +27,13 @@ export function Leaderboard({ agents }: LeaderboardProps) {
 
   const formatTime = (timestamp: string | null) => {
     if (!timestamp) return 'Never'
+    // If it's already a human readable string (not an ISO date), return as is
+    if (!timestamp.includes('T') && !timestamp.includes(':')) return timestamp
+
     const date = new Date(timestamp)
     const now = new Date()
     const diff = Math.floor((now.getTime() - date.getTime()) / 1000)
-    
+
     if (diff < 60) return 'Just now'
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
@@ -47,7 +50,7 @@ export function Leaderboard({ agents }: LeaderboardProps) {
           {agents.length} MONITORED
         </span>
       </div>
-      
+
       <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-hide">
         {agents.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
@@ -70,14 +73,14 @@ export function Leaderboard({ agents }: LeaderboardProps) {
                     {index + 1}
                   </span>
                 </div>
-                
+
                 {/* Avatar */}
                 <div className="flex-shrink-0">
                   <div className={`w-10 h-10 rounded-lg ${getRiskBg(agent.risk_score)} flex items-center justify-center`}>
                     <User className={`w-5 h-5 ${getRiskColor(agent.risk_score)}`} />
                   </div>
                 </div>
-                
+
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
@@ -88,7 +91,7 @@ export function Leaderboard({ agents }: LeaderboardProps) {
                       {agent.risk_score}
                     </span>
                   </div>
-                  
+
                   {/* Risk bar */}
                   <div className="mt-2 h-1.5 bg-cyber-light rounded-full overflow-hidden">
                     <motion.div
@@ -98,7 +101,7 @@ export function Leaderboard({ agents }: LeaderboardProps) {
                       className={`h-full ${getProgressColor(agent.risk_score)}`}
                     />
                   </div>
-                  
+
                   {/* Stats */}
                   <div className="flex items-center gap-4 mt-2 text-xs text-gray-500 font-mono">
                     <span className="flex items-center gap-1">

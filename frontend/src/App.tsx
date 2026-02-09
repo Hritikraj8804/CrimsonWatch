@@ -9,7 +9,7 @@ import { StatsCards } from './components/StatsCards'
 import { useThreatSummary } from './hooks/useApi'
 
 function App() {
-  const { data: threatSummary, loading, error } = useThreatSummary()
+  const { data: threatSummary, loading, error, isAttackMode, toggleAttackMode } = useThreatSummary()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -72,6 +72,18 @@ function App() {
             </div>
 
             <div className="hidden md:flex items-center gap-6">
+              {/* Simulation Toggle */}
+              <button
+                onClick={toggleAttackMode}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md font-mono text-sm transition-all border ${isAttackMode
+                  ? 'bg-crimson-500/10 border-crimson-500 text-crimson-400 hover:bg-crimson-500/20'
+                  : 'bg-green-500/10 border-green-500 text-green-400 hover:bg-green-500/20'
+                  }`}
+              >
+                <Activity className="w-4 h-4" />
+                {isAttackMode ? 'STOP SIMULATION' : 'SIMULATE ATTACK'}
+              </button>
+
               <div className="flex items-center gap-2 text-sm font-mono">
                 <Activity className={`w-4 h-4 ${threatSummary?.threat_color === 'red' ? 'text-crimson-400 animate-pulse' : 'text-green-400'}`} />
                 <span className={threatSummary?.threat_color === 'red' ? 'text-crimson-400' : 'text-green-400'}>
@@ -83,7 +95,7 @@ function App() {
                   {currentTime.toLocaleTimeString('en-US', { hour12: false })}
                 </p>
                 <p className="text-xs text-gray-500 font-mono">
-                  {currentTime.toLocaleDateString('en-US', { 
+                  {currentTime.toLocaleDateString('en-US', {
                     weekday: 'short',
                     year: 'numeric',
                     month: 'short',
@@ -118,7 +130,7 @@ function App() {
                 status={threatSummary?.threat_status || 'LOW'}
                 color={threatSummary?.threat_color || 'green'}
               />
-              
+
               <AlertTicker />
             </div>
 
@@ -136,7 +148,7 @@ function App() {
           {/* Footer */}
           <footer className="glass-panel p-4 text-center">
             <p className="text-xs text-gray-600 font-mono">
-              CRIMSONWATCH SECURITY DASHBOARD • MONITORING {threatSummary?.metrics.active_agents || 0} AGENTS • 
+              CRIMSONWATCH SECURITY DASHBOARD • MONITORING {threatSummary?.metrics.active_agents || 0} AGENTS •
               UPDATED: {new Date(threatSummary?.timestamp || '').toLocaleTimeString('en-US', { hour12: false })}
             </p>
           </footer>

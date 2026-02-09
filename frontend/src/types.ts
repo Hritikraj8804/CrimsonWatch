@@ -23,6 +23,8 @@ export interface Agent {
   risk_score: number
   blocked_calls_24h: number
   last_incident: string | null
+  trend?: string // Added to match mock data
+  permission_level?: string // Added to match mock data
 }
 
 export interface ThreatSummary {
