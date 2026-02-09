@@ -19,9 +19,9 @@ Traditional security tools scan code for bugs. **CrimsonWatch monitors what AI a
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    CrimsonWatch Stack                        │
+│                    CrimsonWatch Stack                       │
 ├─────────────────────────────────────────────────────────────┤
-│                                                              │
+│                                                             │
 │  ┌─────────────────┐    ┌─────────────────┐                 │
 │  │  CrimsonWatch   │    │   Archestra     │                 │
 │  │  MCP Server     │◄───│   Platform      │                 │
@@ -38,7 +38,7 @@ Traditional security tools scan code for bugs. **CrimsonWatch monitors what AI a
 │  │       - Agent Activity Timeline         │                │
 │  │       - Security Alerts                 │                │
 │  └─────────────────────────────────────────┘                │
-│                                                              │
+│                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 

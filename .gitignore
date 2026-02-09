@@ -2,8 +2,6 @@
 # CrimsonWatch .gitignore
 # ================================
 
-# ----- Project Internal Docs (LLM Context) -----
-PROJECT_CONTEXT.md
 
 # ----- General -----
 .DS_Store
