@@ -3,9 +3,7 @@ import {
     Activity,
     Clock,
     Shield,
-    Zap,
-    FileText,
-    ArrowRight
+    Zap
 } from 'lucide-react'
 import { useSecurityContext } from '../hooks/useApi'
 
@@ -19,6 +17,15 @@ export function ActivityPage() {
             type: 'alert' as const,
             timestamp: a.timestamp
         })),
+        ...events.map(e => ({
+            id: e.id,
+            severity: 'INFO' as const,
+            message: `${e.type} - ${JSON.stringify(e.details)}`,
+            agent_id: e.agent_id,
+            timestamp: e.timestamp,
+            acknowledged: true,
+            type: 'event' as const
+        }))
     ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
     if (loading && allActivity.length === 0) {
@@ -111,15 +118,15 @@ export function ActivityPage() {
                             >
                                 {/* Timeline dot */}
                                 <div className={`absolute left-4 w-4 h-4 rounded-full border-2 border-[#08080c] ${item.severity === 'HIGH' || item.severity === 'CRITICAL' ? 'bg-red-500' :
-                                        item.severity === 'MED' ? 'bg-yellow-500' :
-                                            'bg-blue-500'
+                                    item.severity === 'MED' ? 'bg-yellow-500' :
+                                        'bg-blue-500'
                                     }`} />
 
                                 <div className="flex-1 p-4 bg-white/5 rounded-lg border border-white/5">
                                     <div className="flex items-center justify-between mb-2">
                                         <span className={`px-2 py-0.5 rounded text-xs font-mono font-bold ${item.severity === 'HIGH' || item.severity === 'CRITICAL' ? 'bg-red-500/20 text-red-400' :
-                                                item.severity === 'MED' ? 'bg-yellow-500/20 text-yellow-400' :
-                                                    'bg-blue-500/20 text-blue-400'
+                                            item.severity === 'MED' ? 'bg-yellow-500/20 text-yellow-400' :
+                                                'bg-blue-500/20 text-blue-400'
                                             }`}>
                                             {item.severity}
                                         </span>

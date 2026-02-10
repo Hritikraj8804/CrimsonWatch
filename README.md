@@ -60,6 +60,15 @@ A modern, dark-mode React application built with Vite and Tailwind CSS.
 - **Interactive Graphs**: Visualizes complex threat data associated with agents.
 - **Control Center**: Allows admins to simulate attacks and view live alerts.
 
+### 3. Service Map
+| Service | URL | Description |
+|---------|-----|-------------|
+| **CrimsonWatch Dashboard** | [http://localhost:5173](http://localhost:5173) | **Main Interface**. Security visualizations & alerts. |
+| **Archestra Platform** | [http://localhost:3000](http://localhost:3000) | Manage Agents and Gateways. |
+| **Prometheus** | [http://localhost:9090](http://localhost:9090) | Raw metrics database. |
+| **MCP Server Health** | [http://localhost:8000/metrics](http://localhost:8000/metrics) | Python server status & metrics. |
+| **MCP Gateway** | `localhost:9000` | API Endpoint (Do not visit in browser). |
+
 ## 🚀 Quick Start Guide
 
 ### Prerequisites

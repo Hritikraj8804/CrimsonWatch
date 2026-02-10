@@ -3,12 +3,10 @@ import { motion } from 'framer-motion'
 import {
     User,
     Search,
-    Filter,
     AlertTriangle,
     Shield,
     Clock,
     Activity,
-    MoreVertical,
     ChevronDown
 } from 'lucide-react'
 import { useSecurityContext, Agent } from '../hooks/useApi'
