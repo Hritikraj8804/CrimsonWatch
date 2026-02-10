@@ -5,8 +5,7 @@ import axios from 'axios'
 // CONFIGURATION
 // ============================================================================
 
-const ARCHESTRA_URL = 'http://localhost:9000'
-const PROMETHEUS_URL = 'http://localhost:9090'
+// Backend URLs are now handled via relative path proxies (see vite.config.ts)
 
 // ============================================================================
 // TYPES
@@ -88,15 +87,72 @@ export function SecurityProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const [isConnected, setIsConnected] = useState(false)
 
-  const fetchFromMCP = async () => {
+  // Helper to query Prometheus
+  const queryPrometheus = async (query: string): Promise<any[]> => {
     try {
-      const response = await axios.get(`${ARCHESTRA_URL}/api/security/summary`).catch(() => null)
-      if (response?.data) {
-        return response.data
+      const url = `/api/prometheus/api/v1/query?query=${encodeURIComponent(query)}`
+      const res = await axios.get(url)
+      if (res.data?.status === 'success' && res.data?.data?.result) {
+        return res.data.data.result
       }
-      return generateDemoData()
+      return []
     } catch {
-      return generateDemoData()
+      return []
+    }
+  }
+
+  const fetchFromMCP = async () => {
+    const defaultData = generateDemoData()
+
+    try {
+      // Parallel Prometheus Queries
+      const [threatLevelRes, blockedCallsRes, alertsRes, agentsRes] = await Promise.all([
+        queryPrometheus('crimsonwatch_threat_level'),
+        queryPrometheus('crimsonwatch_blocked_calls_total'),
+        queryPrometheus('crimsonwatch_active_alerts'),
+        queryPrometheus('crimsonwatch_agent_risk_score'),
+      ])
+
+      // If no data, return demo data
+      if (!threatLevelRes.length) return defaultData
+
+      // Process Metrics
+      const threatLevel = parseFloat(threatLevelRes[0]?.value[1] || '25')
+      const threatStatus: 'NORMAL' | 'ELEVATED' | 'CRITICAL' = threatLevel >= 70 ? 'CRITICAL' : threatLevel >= 40 ? 'ELEVATED' : 'NORMAL'
+      const threatColor: 'green' | 'yellow' | 'red' = threatLevel >= 70 ? 'red' : threatLevel >= 40 ? 'yellow' : 'green'
+
+      const blockedCallsTotal = parseInt(blockedCallsRes[0]?.value[1] || '0')
+      const highSevAlerts = alertsRes.filter((a: any) => a.metric.severity === 'HIGH').reduce((acc: number, curr: any) => acc + parseInt(curr.value[1]), 0)
+
+      // Process Agents
+      const agentsList: Agent[] = agentsRes.map((a: any, index: number) => ({
+        id: a.metric.agent_id || `agent-${index}`,
+        name: a.metric.agent_id || `Unknown Agent`,
+        status: parseFloat(a.value[1]) > 50 ? 'warning' : 'active',
+        risk_score: parseFloat(a.value[1]),
+        blocked_calls: 0, // Need separate metric (TODO)
+        last_activity: new Date().toISOString(),
+        tools_used: [],
+      }))
+
+      return {
+        metrics: {
+          timestamp: new Date().toISOString(),
+          threat_level: threatLevel,
+          threat_status: threatStatus,
+          threat_color: threatColor,
+          blocked_calls_total: blockedCallsTotal,
+          active_agents: agentsList.length,
+          total_events: 0, // Not tracking currently
+          high_severity_alerts: highSevAlerts,
+        },
+        agents: agentsList.length > 0 ? agentsList : defaultData.agents,
+        alerts: defaultData.alerts, // Keeping demo alerts for now as prome doesn't store alert history well
+        events: [],
+      }
+    } catch (err) {
+      console.warn("Failed to fetch Prometheus metrics, falling back to demo data", err)
+      return defaultData
     }
   }
 

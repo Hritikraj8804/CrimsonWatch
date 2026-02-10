@@ -8,8 +8,7 @@ import {
     AlertTriangle,
     Info,
     Shield,
-    Zap,
-    Filter
+    Zap
 } from 'lucide-react'
 import { useSecurityContext, SecurityAlert } from '../hooks/useApi'
 

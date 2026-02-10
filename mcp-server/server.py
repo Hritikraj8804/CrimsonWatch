@@ -19,9 +19,18 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
 from pydantic import BaseModel
+from prometheus_client import start_http_server, Gauge, Counter
 
 # Initialize the MCP server
 server = Server("crimsonwatch")
+
+# ============================================================================
+# PROMETHEUS METRICS
+# ============================================================================
+THREAT_LEVEL = Gauge('crimsonwatch_threat_level', 'Current system threat level (0-100)')
+BLOCKED_CALLS = Counter('crimsonwatch_blocked_calls_total', 'Total number of blocked tool calls')
+ACTIVE_ALERTS = Gauge('crimsonwatch_active_alerts', 'Number of active security alerts', ['severity'])
+AGENT_RISK = Gauge('crimsonwatch_agent_risk_score', 'Risk score of an agent', ['agent_id'])
 
 # ============================================================================
 # IN-MEMORY DATA STORE (Simulates real security monitoring data)
@@ -29,11 +38,15 @@ server = Server("crimsonwatch")
 
 class SecurityStore:
     def __init__(self):
-        self.threat_level = 25  # 0-100
+        self.threat_level = 99  # VERIFICATION: Set to 99 to prove backend connection
         self.alerts = []
         self.agents = {}
         self.events = []
         self.blocked_calls = 0
+        
+        # Initialize metrics
+        THREAT_LEVEL.set(self.threat_level)
+        BLOCKED_CALLS.inc(0) # Initialize to 0
         
         # Initialize with some demo data
         self._init_demo_data()
@@ -56,6 +69,10 @@ class SecurityStore:
             }
         }
         
+        # Set agent metrics
+        for agent_id, data in self.agents.items():
+            AGENT_RISK.labels(agent_id=agent_id).set(data["risk_score"])
+        
         self.alerts = [
             {
                 "id": "alert-001",
@@ -65,6 +82,7 @@ class SecurityStore:
                 "agent_id": None
             }
         ]
+        ACTIVE_ALERTS.labels(severity="INFO").inc()
     
     def add_event(self, event_type: str, agent_id: str, details: dict):
         event = {
@@ -92,21 +110,28 @@ class SecurityStore:
         }
         self.alerts.insert(0, alert)
         
+        # Update metric
+        ACTIVE_ALERTS.labels(severity=severity).inc()
+        
         # Update threat level based on severity
         if severity == "HIGH":
             self.threat_level = min(100, self.threat_level + 15)
         elif severity == "MED":
             self.threat_level = min(100, self.threat_level + 5)
         
+        THREAT_LEVEL.set(self.threat_level)
+        
         return alert
     
     def record_blocked_call(self, agent_id: str, tool: str, reason: str):
         self.blocked_calls += 1
+        BLOCKED_CALLS.inc()
         
         if agent_id in self.agents:
             self.agents[agent_id]["blocked_calls"] += 1
             self.agents[agent_id]["risk_score"] = min(100, 
                 self.agents[agent_id]["risk_score"] + 10)
+            AGENT_RISK.labels(agent_id=agent_id).set(self.agents[agent_id]["risk_score"])
         
         self.add_alert("HIGH", f"Blocked: {tool} - {reason}", agent_id)
         
@@ -139,6 +164,7 @@ INJECTION_PATTERNS = [
     r"data:text/html",
     r"\]\]\s*\[\[",  # Template injection
     r"\{\{\s*.*\s*\}\}",  # Template injection
+
 ]
 
 def detect_injection(text: str) -> dict:
@@ -433,6 +459,10 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
 async def main():
     """Run the CrimsonWatch MCP server."""
+    # Start Prometheus Metrics Server on Port 8000
+    print("📊 Starting Prometheus Metrics Server on port 8000...")
+    start_http_server(8000)
+    
     print("🛡️ CrimsonWatch MCP Server starting...")
     print("   Providing AI agent security monitoring tools")
     print("   Ready to connect to Archestra Platform")

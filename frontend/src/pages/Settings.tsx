@@ -1,11 +1,9 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
-    Settings as SettingsIcon,
     Server,
     Shield,
     Bell,
-    Eye,
     Save,
     RefreshCw
 } from 'lucide-react'
@@ -34,8 +32,8 @@ export function SettingsPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={`p-6 rounded-xl border ${isConnected
-                        ? 'bg-green-500/10 border-green-500/20'
-                        : 'bg-yellow-500/10 border-yellow-500/20'
+                    ? 'bg-green-500/10 border-green-500/20'
+                    : 'bg-yellow-500/10 border-yellow-500/20'
                     }`}
             >
                 <div className="flex items-center justify-between">
