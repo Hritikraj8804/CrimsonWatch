@@ -454,6 +454,43 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     return [TextContent(type="text", text=json.dumps({"error": f"Unknown tool: {name}"}))]
 
 # ============================================================================
+# LIGHTWEIGHT API SERVER (For Dashboard JSON Data)
+# ============================================================================
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import threading
+
+class SimpleJSONHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/api/alerts':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*') # CORS
+            self.end_headers()
+            self.wfile.write(json.dumps(store.alerts).encode())
+        elif self.path == '/api/agents':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*') # CORS
+            self.end_headers()
+            # Convert dict to list for frontend
+            agents_list = []
+            for agent_id, data in store.agents.items():
+                agent_data = data.copy()
+                agent_data['id'] = agent_id
+                agents_list.append(agent_data)
+            self.wfile.write(json.dumps(agents_list).encode())
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+def start_api_server():
+    """Starts the JSON API server on port 8001"""
+    server_address = ('', 8001)
+    httpd = HTTPServer(server_address, SimpleJSONHandler)
+    print(f"🌐 API Server running on port 8001...")
+    httpd.serve_forever()
+
+# ============================================================================
 # MAIN
 # ============================================================================
 
@@ -462,6 +499,10 @@ async def main():
     # Start Prometheus Metrics Server on Port 8000
     print("📊 Starting Prometheus Metrics Server on port 8000...")
     start_http_server(8000)
+
+    # Start API Server on Port 8001 (in background thread)
+    api_thread = threading.Thread(target=start_api_server, daemon=True)
+    api_thread.start()
     
     print("🛡️ CrimsonWatch MCP Server starting...")
     print("   Providing AI agent security monitoring tools")

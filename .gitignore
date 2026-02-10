@@ -59,3 +59,4 @@ grafana_data/
 redis_data/
 *.sqlite3
 *.db
+PROJECT_EXPLAINED.md
