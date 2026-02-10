@@ -3,13 +3,13 @@ import {
     Shield,
     AlertTriangle,
     Users,
-    Activity,
+    Zap,
     TrendingUp,
     TrendingDown,
-    Zap,
     Eye
 } from 'lucide-react'
 import { useSecurityContext } from '../hooks/useApi'
+import FlightRecorder from '../components/FlightRecorder'
 
 // Animated Number Component
 function AnimatedNumber({ value, suffix = '' }: { value: number; suffix?: string }) {
@@ -115,8 +115,8 @@ function ThreatGauge({ level, status }: { level: number; status: string }) {
             <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold text-white">System Threat Level</h3>
                 <div className={`px-3 py-1 rounded-full text-sm font-mono font-semibold ${level >= 70 ? 'bg-red-500/20 text-red-400' :
-                        level >= 40 ? 'bg-yellow-500/20 text-yellow-400' :
-                            'bg-green-500/20 text-green-400'
+                    level >= 40 ? 'bg-yellow-500/20 text-yellow-400' :
+                        'bg-green-500/20 text-green-400'
                     }`}>
                     {status}
                 </div>
@@ -269,8 +269,8 @@ function TopRiskyAgents({ agents }: { agents: any[] }) {
                         className="flex items-center gap-3 p-3 rounded-lg bg-white/5"
                     >
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${agent.risk_score >= 70 ? 'bg-red-500/20 text-red-400' :
-                                agent.risk_score >= 40 ? 'bg-yellow-500/20 text-yellow-400' :
-                                    'bg-green-500/20 text-green-400'
+                            agent.risk_score >= 40 ? 'bg-yellow-500/20 text-yellow-400' :
+                                'bg-green-500/20 text-green-400'
                             }`}>
                             <span className="text-sm font-bold">{index + 1}</span>
                         </div>
@@ -280,8 +280,8 @@ function TopRiskyAgents({ agents }: { agents: any[] }) {
                         </div>
                         <div className="text-right">
                             <p className={`text-lg font-bold ${agent.risk_score >= 70 ? 'text-red-400' :
-                                    agent.risk_score >= 40 ? 'text-yellow-400' :
-                                        'text-green-400'
+                                agent.risk_score >= 40 ? 'text-yellow-400' :
+                                    'text-green-400'
                                 }`}>
                                 {agent.risk_score}
                             </p>
@@ -363,37 +363,10 @@ export function DashboardPage() {
             </div>
 
             {/* Activity Timeline would go here */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-2xl p-6"
-            >
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-white">Security Overview</h3>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="p-4 bg-white/5 rounded-lg text-center">
-                        <Activity className="w-8 h-8 mx-auto mb-2 text-blue-400" />
-                        <p className="text-2xl font-bold text-white">{agents.filter(a => a.status === 'active').length}</p>
-                        <p className="text-xs text-gray-500">Active Agents</p>
-                    </div>
-                    <div className="p-4 bg-white/5 rounded-lg text-center">
-                        <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-yellow-400" />
-                        <p className="text-2xl font-bold text-white">{agents.filter(a => a.status === 'warning').length}</p>
-                        <p className="text-xs text-gray-500">Warnings</p>
-                    </div>
-                    <div className="p-4 bg-white/5 rounded-lg text-center">
-                        <Shield className="w-8 h-8 mx-auto mb-2 text-red-400" />
-                        <p className="text-2xl font-bold text-white">{agents.filter(a => a.status === 'blocked').length}</p>
-                        <p className="text-xs text-gray-500">Blocked</p>
-                    </div>
-                    <div className="p-4 bg-white/5 rounded-lg text-center">
-                        <Zap className="w-8 h-8 mx-auto mb-2 text-green-400" />
-                        <p className="text-2xl font-bold text-white">{alerts.filter(a => !a.acknowledged).length}</p>
-                        <p className="text-xs text-gray-500">Unread Alerts</p>
-                    </div>
-                </div>
-            </motion.div>
+            {/* Flight Recorder Timeline */}
+            <div className="mt-6">
+                <FlightRecorder />
+            </div>
         </div>
     )
 }
