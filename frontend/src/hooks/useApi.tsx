@@ -101,22 +101,34 @@ export function SecurityProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // Helper to fetch JSON from Backend API
+  const queryBackendAPI = async (endpoint: string): Promise<any> => {
+    try {
+      const res = await axios.get(`/api/backend/api/${endpoint}`)
+      return res.data
+    } catch {
+      return null
+    }
+  }
+
   const fetchFromMCP = async () => {
     const defaultData = generateDemoData()
 
     try {
-      // Parallel Prometheus Queries
-      const [threatLevelRes, blockedCallsRes, alertsRes, agentsRes] = await Promise.all([
+      // Parallel Queries: Prometheus + Custom Backend API
+      const [threatLevelRes, blockedCallsRes, alertsRes, agentsMetricsRes, backendAlerts, backendAgents] = await Promise.all([
         queryPrometheus('crimsonwatch_threat_level'),
         queryPrometheus('crimsonwatch_blocked_calls_total'),
         queryPrometheus('crimsonwatch_active_alerts'),
         queryPrometheus('crimsonwatch_agent_risk_score'),
+        queryBackendAPI('alerts'),
+        queryBackendAPI('agents')
       ])
 
       // If no data, return demo data
       if (!threatLevelRes.length) return defaultData
 
-      // Process Metrics
+      // Process Metrics (From Prometheus)
       const threatLevel = parseFloat(threatLevelRes[0]?.value[1] || '25')
       const threatStatus: 'NORMAL' | 'ELEVATED' | 'CRITICAL' = threatLevel >= 70 ? 'CRITICAL' : threatLevel >= 40 ? 'ELEVATED' : 'NORMAL'
       const threatColor: 'green' | 'yellow' | 'red' = threatLevel >= 70 ? 'red' : threatLevel >= 40 ? 'yellow' : 'green'
@@ -124,16 +136,26 @@ export function SecurityProvider({ children }: { children: React.ReactNode }) {
       const blockedCallsTotal = parseInt(blockedCallsRes[0]?.value[1] || '0')
       const highSevAlerts = alertsRes.filter((a: any) => a.metric.severity === 'HIGH').reduce((acc: number, curr: any) => acc + parseInt(curr.value[1]), 0)
 
-      // Process Agents
-      const agentsList: Agent[] = agentsRes.map((a: any, index: number) => ({
-        id: a.metric.agent_id || `agent-${index}`,
-        name: a.metric.agent_id || `Unknown Agent`,
-        status: parseFloat(a.value[1]) > 50 ? 'warning' : 'active',
-        risk_score: parseFloat(a.value[1]),
-        blocked_calls: 0, // Need separate metric (TODO)
-        last_activity: new Date().toISOString(),
-        tools_used: [],
-      }))
+      // Process Agents (Merge Prometheus Metrics with Backend Metadata if available)
+      let agentsList: Agent[] = []
+      if (backendAgents && Array.isArray(backendAgents)) {
+        // Use Backend Data (Rich Metadata)
+        agentsList = backendAgents
+      } else {
+        // Fallback to Prometheus Metrics only (Limited Data)
+        agentsList = agentsMetricsRes.map((a: any, index: number) => ({
+          id: a.metric.agent_id || `agent-${index}`,
+          name: a.metric.agent_id || `Unknown Agent`,
+          status: parseFloat(a.value[1]) > 50 ? 'warning' : 'active',
+          risk_score: parseFloat(a.value[1]),
+          blocked_calls: 0,
+          last_activity: new Date().toISOString(),
+          tools_used: [],
+        }))
+      }
+
+      // Process Alerts (Use Backend Data if available)
+      const alertsList = (backendAlerts && Array.isArray(backendAlerts)) ? backendAlerts : defaultData.alerts
 
       return {
         metrics: {
@@ -147,11 +169,11 @@ export function SecurityProvider({ children }: { children: React.ReactNode }) {
           high_severity_alerts: highSevAlerts,
         },
         agents: agentsList.length > 0 ? agentsList : defaultData.agents,
-        alerts: defaultData.alerts, // Keeping demo alerts for now as prome doesn't store alert history well
+        alerts: alertsList,
         events: [],
       }
     } catch (err) {
-      console.warn("Failed to fetch Prometheus metrics, falling back to demo data", err)
+      console.warn("Failed to fetch metrics, using demo data", err)
       return defaultData
     }
   }

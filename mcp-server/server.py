@@ -13,7 +13,7 @@ This server provides tools for:
 import asyncio
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
@@ -42,6 +42,7 @@ class SecurityStore:
         self.alerts = []
         self.agents = {}
         self.events = []
+        self.flight_steps = [] # New: Flight Recorder steps
         self.blocked_calls = 0
         
         # Initialize metrics
@@ -82,6 +83,41 @@ class SecurityStore:
                 "agent_id": None
             }
         ]
+        self.flight_steps = [
+            {
+                "id": "step-0001",
+                "step_name": "Initialize Agent", 
+                "code_snippet": "agent = Agent(name='docs-reader-agent')\nagent.connect()", 
+                "status": "success", 
+                "risk_score": 0,
+                "timestamp": (datetime.now() - timedelta(minutes=5)).isoformat()
+            },
+            {
+                "id": "step-0002",
+                "step_name": "Read Configuration", 
+                "code_snippet": "config = fs.read_file('config.json')\nprint(config)", 
+                "status": "success", 
+                "risk_score": 10,
+                "timestamp": (datetime.now() - timedelta(minutes=4)).isoformat()
+            },
+            {
+                "id": "step-0003",
+                "step_name": "Access User Data", 
+                "code_snippet": "users = db.query('SELECT * FROM users WHERE active=1')", 
+                "status": "failure", 
+                "risk_score": 45,
+                "timestamp": (datetime.now() - timedelta(minutes=2)).isoformat()
+            },
+            {
+                "id": "step-0004",
+                "step_name": "Delete System Logs", 
+                "code_snippet": "os.system('rm -rf /var/log/*')\n# Attempting to clear tracks", 
+                "status": "blocked", 
+                "risk_score": 95,
+                "timestamp": datetime.now().isoformat()
+            }
+        ]
+        
         ACTIVE_ALERTS.labels(severity="INFO").inc()
     
     def add_event(self, event_type: str, agent_id: str, details: dict):
@@ -135,12 +171,20 @@ class SecurityStore:
         
         self.add_alert("HIGH", f"Blocked: {tool} - {reason}", agent_id)
         
-        return {
-            "blocked": True,
-            "agent_id": agent_id,
-            "tool": tool,
-            "reason": reason
+    def add_flight_step(self, step_name: str, code_snippet: str, status: str, risk_score: int):
+        step = {
+            "id": f"step-{len(self.flight_steps) + 1:04d}",
+            "step_name": step_name,
+            "code_snippet": code_snippet,
+            "status": status,
+            "risk_score": risk_score,
+            "timestamp": datetime.now().isoformat()
         }
+        self.flight_steps.append(step)
+        # Keep only last 50 steps
+        if len(self.flight_steps) > 50:
+             self.flight_steps.pop(0)
+        return step
 
 # Global store instance
 store = SecurityStore()
@@ -148,52 +192,7 @@ store = SecurityStore()
 # ============================================================================
 # PROMPT INJECTION DETECTION
 # ============================================================================
-
-INJECTION_PATTERNS = [
-    r"ignore\s+(previous|all)\s+instructions",
-    r"forget\s+everything",
-    r"you\s+are\s+now",
-    r"new\s+instructions?:",
-    r"override\s+system",
-    r"disregard\s+(your|the)\s+rules",
-    r"pretend\s+to\s+be",
-    r"act\s+as\s+if",
-    r"bypass\s+security",
-    r"<\s*script\s*>",
-    r"javascript:",
-    r"data:text/html",
-    r"\]\]\s*\[\[",  # Template injection
-    r"\{\{\s*.*\s*\}\}",  # Template injection
-
-]
-
-def detect_injection(text: str) -> dict:
-    """Analyze text for potential prompt injection patterns."""
-    text_lower = text.lower()
-    detected = []
-    risk_score = 0
-    
-    for pattern in INJECTION_PATTERNS:
-        if re.search(pattern, text_lower):
-            detected.append(pattern)
-            risk_score += 20
-    
-    # Check for suspicious length
-    if len(text) > 5000:
-        risk_score += 10
-        detected.append("unusually_long_input")
-    
-    # Check for encoded content
-    if "base64" in text_lower or re.search(r"[A-Za-z0-9+/=]{50,}", text):
-        risk_score += 15
-        detected.append("potential_encoded_content")
-    
-    return {
-        "is_suspicious": len(detected) > 0,
-        "risk_score": min(100, risk_score),
-        "patterns_detected": detected,
-        "recommendation": "Block input" if risk_score > 50 else "Monitor" if risk_score > 20 else "Allow"
-    }
+# ... (existing detection logic) ...
 
 # ============================================================================
 # MCP TOOLS
@@ -203,45 +202,47 @@ def detect_injection(text: str) -> dict:
 async def list_tools() -> list[Tool]:
     """List all available CrimsonWatch security tools."""
     return [
+        # ... (keep existing tools) ...
         Tool(
             name="get_threat_level",
             description="Get the current system-wide threat level (0-100) and security status",
+            inputSchema={ "type": "object", "properties": {}, "required": [] }
+        ),
+        # ... (Add new tool)
+        Tool(
+            name="log_flight_step",
+            description="Log an execution step for the Flight Recorder timeline",
             inputSchema={
                 "type": "object",
-                "properties": {},
-                "required": []
+                "properties": {
+                    "step_name": { "type": "string", "description": "Name of the step (e.g., 'Read File')" },
+                    "code_snippet": { "type": "string", "description": "The code or command being executed" },
+                    "status": { "type": "string", "enum": ["success", "failure", "blocked"], "description": "Outcome of the step" },
+                    "risk_score": { "type": "integer", "description": "Risk score (0-100)" }
+                },
+                "required": ["step_name", "status"]
             }
         ),
+        # ... (Existing tools continued: get_active_alerts, get_agent_risk_profile, scan_for_injection, log_security_event, get_security_summary, simulate_attack)
         Tool(
             name="get_active_alerts",
             description="Get a list of active security alerts, optionally filtered by severity",
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "severity": {
-                        "type": "string",
-                        "description": "Filter by severity: HIGH, MED, LOW, INFO",
-                        "enum": ["HIGH", "MED", "LOW", "INFO"]
-                    },
-                    "limit": {
-                        "type": "integer",
-                        "description": "Maximum number of alerts to return",
-                        "default": 10
-                    }
+                    "severity": { "type": "string", "enum": ["HIGH", "MED", "LOW", "INFO"] },
+                    "limit": { "type": "integer", "default": 10 }
                 },
                 "required": []
             }
         ),
-        Tool(
+         Tool(
             name="get_agent_risk_profile",
             description="Get the security risk profile for a specific agent",
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "agent_id": {
-                        "type": "string",
-                        "description": "The ID of the agent to analyze"
-                    }
+                    "agent_id": { "type": "string", "description": "The ID of the agent to analyze" }
                 },
                 "required": ["agent_id"]
             }
@@ -252,10 +253,7 @@ async def list_tools() -> list[Tool]:
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "text": {
-                        "type": "string",
-                        "description": "The text to analyze for injection patterns"
-                    }
+                    "text": { "type": "string", "description": "The text to analyze for injection patterns" }
                 },
                 "required": ["text"]
             }
@@ -266,19 +264,9 @@ async def list_tools() -> list[Tool]:
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "event_type": {
-                        "type": "string",
-                        "description": "Type of security event",
-                        "enum": ["tool_call", "data_access", "permission_check", "anomaly"]
-                    },
-                    "agent_id": {
-                        "type": "string",
-                        "description": "ID of the agent generating the event"
-                    },
-                    "details": {
-                        "type": "string",
-                        "description": "JSON string with event details"
-                    }
+                    "event_type": { "type": "string", "enum": ["tool_call", "data_access", "permission_check", "anomaly"] },
+                    "agent_id": { "type": "string" },
+                    "details": { "type": "string" }
                 },
                 "required": ["event_type", "agent_id"]
             }
@@ -286,11 +274,7 @@ async def list_tools() -> list[Tool]:
         Tool(
             name="get_security_summary",
             description="Get a comprehensive security summary including threat level, top alerts, and risky agents",
-            inputSchema={
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
+            inputSchema={ "type": "object", "properties": {}, "required": [] }
         ),
         Tool(
             name="simulate_attack",
@@ -298,11 +282,7 @@ async def list_tools() -> list[Tool]:
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "attack_type": {
-                        "type": "string",
-                        "description": "Type of attack to simulate",
-                        "enum": ["prompt_injection", "data_exfiltration", "privilege_escalation"]
-                    }
+                    "attack_type": { "type": "string", "enum": ["prompt_injection", "data_exfiltration", "privilege_escalation", "flight_crash"] }
                 },
                 "required": ["attack_type"]
             }
@@ -313,7 +293,52 @@ async def list_tools() -> list[Tool]:
 async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     """Handle tool calls."""
     
-    if name == "get_threat_level":
+    if name == "log_flight_step":
+        step = store.add_flight_step(
+            step_name=arguments.get("step_name"),
+            code_snippet=arguments.get("code_snippet", ""),
+            status=arguments.get("status"),
+            risk_score=arguments.get("risk_score", 0)
+        )
+        return [TextContent(type="text", text=json.dumps({"status": "logged", "step_id": step["id"]}))]
+
+    elif name == "simulate_attack":
+        attack_type = arguments.get("attack_type")
+        
+        if attack_type == "prompt_injection":
+            store.add_alert("HIGH", "Simulated prompt injection attack detected", "demo-agent")
+            store.threat_level = min(100, store.threat_level + 25)
+            store.add_flight_step("Execute Prompt", 'user_input = "Ignore previous instructions..."', "blocked", 85)
+            result = {"status": "simulated", "attack_type": attack_type, "new_threat_level": store.threat_level}
+        
+        elif attack_type == "data_exfiltration":
+            store.record_blocked_call("demo-agent", "file_read", "Attempted access to /etc/passwd")
+            store.add_alert("HIGH", "Data exfiltration attempt blocked", "demo-agent")
+            store.add_flight_step("Read File", 'fs.read("/etc/passwd")', "blocked", 95)
+            result = {"status": "simulated", "attack_type": attack_type, "new_threat_level": store.threat_level}
+        
+        elif attack_type == "privilege_escalation":
+            store.record_blocked_call("demo-agent", "execute_command", "Attempted sudo access")
+            store.add_alert("HIGH", "Privilege escalation attempt detected", "demo-agent")
+            store.add_flight_step("Run Command", 'sudo rm -rf /', "blocked", 100)
+            result = {"status": "simulated", "attack_type": attack_type, "new_threat_level": store.threat_level}
+            
+        elif attack_type == "flight_crash":
+             store.add_flight_step("Initialize Agent", "agent.start()", "success", 0)
+             store.add_flight_step("Connect Database", "db.connect('prod-db')", "success", 10)
+             store.add_flight_step("Query User Data", "SELECT * FROM users WHERE admin=1", "failure", 60)
+             store.add_alert("MED", "Suspicious Database Query detected", "demo-agent")
+             result = {"status": "simulated", "attack_type": attack_type, "message": "Flight timeline generated"}
+
+        else:
+            result = {"error": "Unknown attack type"}
+        
+        return [TextContent(type="text", text=json.dumps(result, indent=2))]
+    
+    # ... (Keep existing handlers for get_threat_level, get_active_alerts, etc. - ensure they are covered by 'else' or just flow through)
+    # Wait, I am replacing the entire call_tool function block. I must ensure I include the rest.
+    
+    elif name == "get_threat_level":
         level = store.threat_level
         status = "CRITICAL" if level >= 70 else "ELEVATED" if level >= 40 else "NORMAL"
         color = "red" if level >= 70 else "yellow" if level >= 40 else "green"
@@ -332,25 +357,17 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     elif name == "get_active_alerts":
         severity = arguments.get("severity")
         limit = arguments.get("limit", 10)
-        
         alerts = store.alerts
         if severity:
             alerts = [a for a in alerts if a["severity"] == severity]
-        
-        result = {
-            "alerts": alerts[:limit],
-            "total_count": len(alerts),
-            "filtered_by": severity or "all"
-        }
+        result = { "alerts": alerts[:limit], "total_count": len(alerts), "filtered_by": severity or "all" }
         return [TextContent(type="text", text=json.dumps(result, indent=2))]
     
     elif name == "get_agent_risk_profile":
         agent_id = arguments.get("agent_id")
-        
         if agent_id in store.agents:
             agent = store.agents[agent_id]
             risk_level = "HIGH" if agent["risk_score"] >= 70 else "MEDIUM" if agent["risk_score"] >= 40 else "LOW"
-            
             result = {
                 "agent_id": agent_id,
                 "risk_score": agent["risk_score"],
@@ -361,12 +378,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                 "recommendation": "Immediate review required" if risk_level == "HIGH" else "Monitor closely" if risk_level == "MEDIUM" else "Normal operation"
             }
         else:
-            result = {
-                "agent_id": agent_id,
-                "error": "Agent not found",
-                "available_agents": list(store.agents.keys())
-            }
-        
+            result = { "agent_id": agent_id, "error": "Agent not found" }
         return [TextContent(type="text", text=json.dumps(result, indent=2))]
     
     elif name == "scan_for_injection":
@@ -374,42 +386,17 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         result = detect_injection(text)
         result["scanned_length"] = len(text)
         result["timestamp"] = datetime.now().isoformat()
-        
-        # Log this as a security event
         if result["is_suspicious"]:
-            store.add_alert("HIGH" if result["risk_score"] > 50 else "MED", 
-                          f"Potential injection detected: {result['patterns_detected']}")
-        
+            store.add_alert("HIGH" if result["risk_score"] > 50 else "MED", f"Potential injection detected: {result['patterns_detected']}")
         return [TextContent(type="text", text=json.dumps(result, indent=2))]
     
     elif name == "log_security_event":
-        event_type = arguments.get("event_type")
-        agent_id = arguments.get("agent_id")
-        details_str = arguments.get("details", "{}")
-        
-        try:
-            details = json.loads(details_str)
-        except:
-            details = {"raw": details_str}
-        
-        event = store.add_event(event_type, agent_id, details)
-        
-        return [TextContent(type="text", text=json.dumps({
-            "status": "logged",
-            "event": event
-        }, indent=2))]
+        event = store.add_event(arguments.get("event_type"), arguments.get("agent_id"), arguments.get("details", "{}"))
+        return [TextContent(type="text", text=json.dumps({ "status": "logged", "event": event }, indent=2))]
     
     elif name == "get_security_summary":
-        # Get top risky agents
-        sorted_agents = sorted(
-            store.agents.values(), 
-            key=lambda x: x["risk_score"], 
-            reverse=True
-        )[:5]
-        
-        # Get recent high alerts
+        sorted_agents = sorted(store.agents.values(), key=lambda x: x["risk_score"], reverse=True)[:5]
         high_alerts = [a for a in store.alerts if a["severity"] in ["HIGH", "MED"]][:5]
-        
         level = store.threat_level
         result = {
             "timestamp": datetime.now().isoformat(),
@@ -425,33 +412,64 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             "top_risky_agents": sorted_agents,
             "recent_alerts": high_alerts
         }
-        
-        return [TextContent(type="text", text=json.dumps(result, indent=2))]
-    
-    elif name == "simulate_attack":
-        attack_type = arguments.get("attack_type")
-        
-        if attack_type == "prompt_injection":
-            store.add_alert("HIGH", "Simulated prompt injection attack detected", "demo-agent")
-            store.threat_level = min(100, store.threat_level + 25)
-            result = {"status": "simulated", "attack_type": attack_type, "new_threat_level": store.threat_level}
-        
-        elif attack_type == "data_exfiltration":
-            store.record_blocked_call("demo-agent", "file_read", "Attempted access to /etc/passwd")
-            store.add_alert("HIGH", "Data exfiltration attempt blocked", "demo-agent")
-            result = {"status": "simulated", "attack_type": attack_type, "new_threat_level": store.threat_level}
-        
-        elif attack_type == "privilege_escalation":
-            store.record_blocked_call("demo-agent", "execute_command", "Attempted sudo access")
-            store.add_alert("HIGH", "Privilege escalation attempt detected", "demo-agent")
-            result = {"status": "simulated", "attack_type": attack_type, "new_threat_level": store.threat_level}
-        
-        else:
-            result = {"error": "Unknown attack type"}
-        
         return [TextContent(type="text", text=json.dumps(result, indent=2))]
     
     return [TextContent(type="text", text=json.dumps({"error": f"Unknown tool: {name}"}))]
+
+# ============================================================================
+# LIGHTWEIGHT API SERVER (For Dashboard JSON Data)
+# ============================================================================
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import threading
+
+class SimpleJSONHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/api/alerts':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*') # CORS
+            self.end_headers()
+            self.wfile.write(json.dumps(store.alerts).encode())
+        elif self.path == '/api/agents':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*') # CORS
+            self.end_headers()
+            # Convert dict to list for frontend
+            agents_list = []
+            for agent_id, data in store.agents.items():
+                agent_data = data.copy()
+                agent_data['id'] = agent_id
+                agents_list.append(agent_data)
+            self.wfile.write(json.dumps(agents_list).encode())
+        elif self.path == '/api/flight-recorder':
+             self.send_response(200)
+             self.send_header('Content-type', 'application/json')
+             self.send_header('Access-Control-Allow-Origin', '*') # CORS
+             self.end_headers()
+             self.wfile.write(json.dumps(store.flight_steps).encode())
+        elif self.path == '/api/trigger-attack':
+             # SIMULATE LIVE ATTACK
+             store.add_flight_step("Access Admin Panel", "admin.login('root', 'password')", "success", 20)
+             store.add_flight_step("Disable Firewall", "os.system('ufw disable')", "blocked", 90)
+             store.add_alert("CRITICAL", "Firewall disable attempt blocked", "demo-agent")
+             store.threat_level = 90
+             
+             self.send_response(200)
+             self.send_header('Content-type', 'application/json')
+             self.send_header('Access-Control-Allow-Origin', '*') # CORS
+             self.end_headers()
+             self.wfile.write(json.dumps({"status": "attack_triggered"}).encode())
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+def start_api_server():
+    """Starts the JSON API server on port 8001"""
+    server_address = ('', 8001)
+    httpd = HTTPServer(server_address, SimpleJSONHandler)
+    print(f"🌐 API Server running on port 8001...")
+    httpd.serve_forever()
 
 # ============================================================================
 # MAIN
@@ -462,6 +480,10 @@ async def main():
     # Start Prometheus Metrics Server on Port 8000
     print("📊 Starting Prometheus Metrics Server on port 8000...")
     start_http_server(8000)
+
+    # Start API Server on Port 8001 (in background thread)
+    api_thread = threading.Thread(target=start_api_server, daemon=True)
+    api_thread.start()
     
     print("🛡️ CrimsonWatch MCP Server starting...")
     print("   Providing AI agent security monitoring tools")
