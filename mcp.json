@@ -1,11 +1,10 @@
 {
-    "mcpServers": {
-        "crimsonwatch": {
-            "command": "python",
-            "args": [
-                "server.py"
-            ],
-            "cwd": "./mcp-server"
-        }
+  "mcpServers": {
+    "crimsonwatch": {
+      "url": "http://localhost:9000/v1/mcp/0e855a84-5d45-44c5-a3cb-22603b813304",
+      "headers": {
+        "Authorization": "Bearer archestra_5de551c7ade3d8250427e8dc3f1e1948"
+      }
     }
+  }
 }
